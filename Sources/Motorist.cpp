@@ -16,6 +16,9 @@ http://creativecommons.org/publicdomain/zero/1.0/
 #include <string.h>
 #include "Motorist.h"
 
+#include <thread>
+using std::thread;
+
 bool hasMore(istream& in)
 {
     return in.peek() >= 0;
@@ -120,17 +123,35 @@ Engine::Engine(vector<Piston>& aPistons)
 
 void Engine::Spark(bool eomFlag, const vector<unsigned int>& l)
 {
+    vector<thread> threads;
+
     for(unsigned int i=0; i<Pi; i++)
-        Pistons[i].Spark(eomFlag, l[i]);
+    {
+        // Pistons[i].Spark(eomFlag, l[i]);
+        threads.push_back(std::thread(&Piston::Spark, &Pistons[i], eomFlag, l[i]));
+    }
+
+    for(unsigned int i=0; i<Pi; i++)
+        threads.at(i).join();
+
     Et = l;
 }
 
 void Engine::Crypt(istream& I, ostream& O, bool unwrapFlag)
 {
+    vector<thread> threads;
+
     if (phase != fresh)
         throw Exception("The phase must be fresh to call Engine::Crypt().");
     for(unsigned int i=0; i<Pi; i++)
+    {
         Pistons[i].Crypt(I, O, Et[i], unwrapFlag);
+        // threads.push_back(thread(&Piston::Crypt, Pistons[i], I, O, Et[i], unwrapFlag));
+    }
+
+    // for(unsigned int i=0; i<Pi; i++)
+        // threads.at(i).join();
+
     if (hasMore(I))
         phase = crypted;
     else
@@ -139,11 +160,20 @@ void Engine::Crypt(istream& I, ostream& O, bool unwrapFlag)
 
 void Engine::Inject(istream& A)
 {
+    vector<thread> threads;
+
     if ((phase != fresh) && (phase != crypted) && (phase != endOfCrypt))
         throw Exception("The phase must be fresh, crypted or endOfCrypt to call Engine::Inject().");
     bool cryptingFlag = (phase == crypted) || (phase == endOfCrypt);
+
     for(unsigned int i=0; i<Pi; i++)
+    {
         Pistons[i].Inject(A, cryptingFlag);
+        // threads.push_back(thread(&Piston::Inject, Pistons[i], A, cryptingFlag));
+    }
+    // for(unsigned int i=0; i<Pi; i++)
+    //     threads.at(i).join();
+
     if ((phase == crypted) || hasMore(A)) {
         Spark(false, vector<unsigned int>(Pi, 0));
         phase = fresh;
@@ -154,11 +184,19 @@ void Engine::Inject(istream& A)
 
 void Engine::GetTags(ostream& T, const vector<unsigned int>& l)
 {
+    vector<thread> threads;
+
     if (phase != endOfMessage)
         throw Exception("The phase must be endOfMessage to call Engine::GetTags().");
     Spark(true, l);
     for(unsigned int i=0; i<Pi; i++)
+    {
         Pistons[i].GetTag(T, l[i]);
+        // threads.push_back(thread(&Piston::GetTag, &Pistons[i], T, l[i]));
+    }
+    // for(unsigned int i=0; i<Pi; i++)
+    //     threads.at(i).join();
+
     phase = fresh;
 }
 

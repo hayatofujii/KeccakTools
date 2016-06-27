@@ -78,13 +78,15 @@ $(BINDIR):
 
 OBJECTS = $(addprefix $(BINDIR)/, $(notdir $(patsubst %.cpp,%.o,$(SOURCES))))
 
-CFLAGS = -O3 -g0
+CFLAGS = -O3 -g0 -std=c++11
 
 VPATH = Sources
 
 INCLUDES = -ISources
 
 -include $(addsuffix .d, $(OBJECTS))
+
+#CXX = clang++-3.5
 
 $(BINDIR)/%.o:%.cpp
 	$(CXX) $(INCLUDES) $(CFLAGS) -c $< -o $@
