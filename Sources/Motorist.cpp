@@ -140,17 +140,23 @@ void Engine::Spark(bool eomFlag, const vector<unsigned int>& l)
 void Engine::Crypt(istream& I, ostream& O, bool unwrapFlag)
 {
     vector<thread> threads;
+    vector<ostream&> Os;
 
     if (phase != fresh)
         throw Exception("The phase must be fresh to call Engine::Crypt().");
     for(unsigned int i=0; i<Pi; i++)
     {
-        Pistons[i].Crypt(I, O, Et[i], unwrapFlag);
-        // threads.push_back(thread(&Piston::Crypt, Pistons[i], I, O, Et[i], unwrapFlag));
+        // Pistons[i].Crypt(I, O, Et[i], unwrapFlag);
+        stringstream stream;
+        Os.push_back(stream);
+        threads.push_back(thread(&Piston::Crypt, &Pistons[i], I, Os.at[i], Et[i], unwrapFlag));
     }
 
-    // for(unsigned int i=0; i<Pi; i++)
-        // threads.at(i).join();
+    for(unsigned int i=0; i<Pi; i++)
+    {
+        threads.at(i).join();
+        O.put(Os.at(i).str());
+    }
 
     if (hasMore(I))
         phase = crypted;
@@ -168,11 +174,11 @@ void Engine::Inject(istream& A)
 
     for(unsigned int i=0; i<Pi; i++)
     {
-        Pistons[i].Inject(A, cryptingFlag);
-        // threads.push_back(thread(&Piston::Inject, Pistons[i], A, cryptingFlag));
+        // Pistons[i].Inject(A, cryptingFlag);
+        threads.push_back(thread(&Piston::Inject, &Pistons[i], A, cryptingFlag));
     }
-    // for(unsigned int i=0; i<Pi; i++)
-    //     threads.at(i).join();
+    for(unsigned int i=0; i<Pi; i++)
+        threads.at(i).join();
 
     if ((phase == crypted) || hasMore(A)) {
         Spark(false, vector<unsigned int>(Pi, 0));
@@ -185,17 +191,25 @@ void Engine::Inject(istream& A)
 void Engine::GetTags(ostream& T, const vector<unsigned int>& l)
 {
     vector<thread> threads;
+    vector<stringstream> Ts;
 
     if (phase != endOfMessage)
         throw Exception("The phase must be endOfMessage to call Engine::GetTags().");
     Spark(true, l);
+
     for(unsigned int i=0; i<Pi; i++)
     {
-        Pistons[i].GetTag(T, l[i]);
-        // threads.push_back(thread(&Piston::GetTag, &Pistons[i], T, l[i]));
+        // Pistons[i].GetTag(T, l[i]);
+        stringstream stream;
+        Ts.push_back(stream);
+        threads.push_back(thread(&Piston::GetTag, &Pistons[i], Ts.at(i), l[i]));
     }
-    // for(unsigned int i=0; i<Pi; i++)
-    //     threads.at(i).join();
+
+    for(unsigned int i=0; i<Pi; i++)
+    {
+        threads.at(i).join();
+        T.put(Ts.at(i).str());
+    }
 
     phase = fresh;
 }

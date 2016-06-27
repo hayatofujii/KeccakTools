@@ -86,7 +86,7 @@ INCLUDES = -ISources
 
 -include $(addsuffix .d, $(OBJECTS))
 
-#CXX = clang++-3.5
+CXX = clang++-3.5
 
 $(BINDIR)/%.o:%.cpp
 	$(CXX) $(INCLUDES) $(CFLAGS) -c $< -o $@
